@@ -442,8 +442,15 @@ CAMLprim value spawn_unix(value v_env,
 
      For instance:
      http://git.musl-libc.org/cgit/musl/tree/src/process/posix_spawn.c
+
+     Android's libc "bionic" is an exception; thread cancellation is
+     unlikely to ever be implemented. pthread_cancel() and related defines
+     are not present.
+     https://android.googlesource.com/platform/bionic/+/a39ac04033fe3bc9faa49eba16a7e80e2be4ed77/docs/status.md#posix
   */
+#ifndef __BIONIC__
   pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel_state);
+#endif
   sigfillset(&sigset);
   pthread_sigmask(SIG_SETMASK, &sigset, &saved_procmask);
 
@@ -531,7 +538,9 @@ CAMLprim value spawn_unix(value v_env,
 
   close(result_pipe[0]);
   pthread_sigmask(SIG_SETMASK, &saved_procmask, NULL);
+#ifndef __BIONIC__
   pthread_setcancelstate(cancel_state, NULL);
+#endif
 
   caml_leave_blocking_section();
 
